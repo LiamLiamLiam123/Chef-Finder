@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipe Finder</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #273449;
+    --accent: #f59e0b;
+    --accent-2: #fb923c;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --border: #334155;
+    --danger: #ef4444;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    background-image: radial-gradient(circle at 15% 10%, rgba(245, 158, 11, 0.10), transparent 35%),
+                      radial-gradient(circle at 85% 80%, rgba(251, 146, 60, 0.08), transparent 35%);
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; }
+  .logo span {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .logo .icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+  }
+  .view-toggle {
+    display: flex; gap: 6px; background: var(--surface); padding: 5px; border-radius: 12px; border: 1px solid var(--border);
+  }
+  .view-toggle button {
+    padding: 8px 16px; border: none; background: transparent; color: var(--muted);
+    border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s;
+  }
+  .view-toggle button.active { background: var(--accent); color: #1a1205; }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  .hero { text-align: center; margin-bottom: 28px; }
+  .hero h1 { font-size: 40px; font-weight: 800; margin-bottom: 8px; }
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero p { color: var(--muted); font-size: 16px; }
+
+  .search-bar {
+    display: flex; gap: 10px; max-width: 640px; margin: 0 auto 24px;
+  }
+  .search-bar input {
+    flex: 1; padding: 15px 20px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; color: var(--text); font-size: 16px; outline: none; transition: border-color 0.2s;
+  }
+  .search-bar input:focus { border-color: var(--accent); }
+  .search-bar input::placeholder { color: var(--muted); }
+  .search-bar button {
+    padding: 15px 26px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #1a1205; border: none; border-radius: 14px; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: transform 0.12s, box-shadow 0.2s; white-space: nowrap;
+  }
+  .search-bar button:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(245,158,11,0.35); }
+  .search-bar button:active { transform: scale(0.97); }
+
+  .chips {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px;
+  }
+  .chip {
+    padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+  .chip.active { background: var(--accent); color: #1a1205; border-color: var(--accent); font-weight: 600; }
+
+  .section-title { font-size: 14px; color: var(--muted); margin: 24px 0 14px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    cursor: pointer; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    display: flex; flex-direction: column; animation: fadeUp 0.35s ease backwards;
+  }
+  .card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .thumb { position: relative; aspect-ratio: 16/10; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+  .card:hover .thumb img { transform: scale(1.07); }
+  .badge {
+    position: absolute; top: 10px; left: 10px; background: rgba(15,23,42,0.85);
+    padding: 5px 11px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--accent);
+  }
+  .fav-btn {
+    position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%;
+    border: none; background: rgba(15,23,42,0.7); cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: background 0.2s, transform 0.15s; backdrop-filter: blur(4px);
+  }
+  .fav-btn:hover { background: rgba(15,23,42,0.95); transform: scale(1.1); }
+  .fav-btn svg { transition: all 0.2s; }
+  .fav-btn.active svg { fill: var(--danger); stroke: var(--danger); }
+  .card-body { padding: 14px 16px 18px; flex: 1; }
+  .card-body h3 { font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .card-meta { color: var(--muted); font-size: 13px; margin-top: 6px; display: flex; gap: 12px; }
+
+  .status { text-align: center; padding: 70px 20px; color: var(--muted); }
+  .status svg { opacity: 0.4; margin-bottom: 14px; }
+  .spinner {
+    width: 42px; height: 42px; border: 4px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; z-index: 100; background: rgba(5,7,13,0.8); backdrop-filter: blur(6px);
+    display: flex; align-items: flex-start; justify-content: center; padding: 30px 16px;
+    overflow-y: auto; animation: fadeIn 0.25s;
+  }
+  .modal-bg.hidden { display: none; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px; max-width: 760px; width: 100%;
+    overflow: hidden; animation: pop 0.3s; margin: auto;
+  }
+  @keyframes pop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  .modal-hero { position: relative; aspect-ratio: 16/8; }
+  .modal-hero img { width: 100%; height: 100%; object-fit: cover; }
+  .modal-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, var(--surface), transparent 60%); }
+  .close-btn {
+    position: absolute; top: 14px; right: 14px; width: 40px; height: 40px; border-radius: 50%; border: none;
+    background: rgba(15,23,42,0.8); color: white; cursor: pointer; font-size: 20px; z-index: 2;
+    display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+  }
+  .close-btn:hover { background: var(--danger); }
+  .modal-content { padding: 24px 28px 32px; margin-top: -40px; position: relative; }
+  .modal-content h2 { font-size: 28px; font-weight: 800; }
+  .modal-tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 20px; }
+  .tag { background: var(--surface-2); border: 1px solid var(--border); padding: 6px 13px; border-radius: 8px; font-size: 13px; color: var(--accent); font-weight: 600; }
+  .modal-fav {
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 9px 18px;
+    border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.2s;
+  }
+  .modal-fav.active { color: var(--danger); border-color: var(--danger); }
+  .modal-cols { display: grid; grid-template-columns: 1fr 1.4fr; gap: 28px; margin-top: 22px; }
+  @media (max-width: 640px) { .modal-cols { grid-template-columns: 1fr; } }
+  .ing-list { list-style: none; }
+  .ing-list li {
+    padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 10px; font-size: 14px;
+  }
+  .ing-list li .name { color: var(--text); }
+  .ing-list li .measure { color: var(--accent); font-weight: 600; text-align: right; }
+  .steps h3, .ing-col h3 { font-size: 16px; margin-bottom: 12px; color: var(--text); }
+  .steps p { color: #cbd5e1; font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+  .external { margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .external a {
+    padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text); transition: all 0.2s;
+  }
+  .external a:hover { border-color: var(--accent); color: var(--accent); }
+  .external a.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #1a1205; border: none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1205" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>
+    </div>
+    Chef<span>Finder</span>
+  </div>
+  <div class="view-toggle">
+    <button class="active" id="browseBtn">Browse</button>
+    <button id="favBtn">Favorites <span id="favCount" style="opacity:.7"></span></button>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Find your next <span>meal</span></h1>
+    <p>Search by ingredient or browse categories from around the world.</p>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search by ingredient e.g. chicken, rice, tomato..." autocomplete="off">
+    <button id="searchBtn">Search</button>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div id="results"></div>
+</main>
+
+<div class="modal-bg hidden" id="modal">
+  <div class="modal" id="modalInner"></div>
+</div>
+
+<script>
+const API = 'https://www.themealdb.com/api/json/v1/1';
+const resultsEl = document.getElementById('results');
+const chipsEl = document.getElementById('chips');
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const browseBtn = document.getElementById('browseBtn');
+const favBtn = document.getElementById('favBtn');
+const favCount = document.getElementById('favCount');
+const modal = document.getElementById('modal');
+const modalInner = document.getElementById('modalInner');
+
+let categories = [];
+let activeCategory = null;
+let view = 'browse';
+let currentMeals = [];
+let favorites = JSON.parse(localStorage.getItem('chef_favs') || '[]');
+
+const HEART_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f1f5f9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+
+function updateFavCount() {
+  favCount.textContent = favorites.length ? `(${favorites.length})` : '';
+}
+updateFavCount();
+
+function isFav(id) { return favorites.some(f => f.idMeal === id); }
+function toggleFav(meal) {
+  if (isFav(meal.idMeal)) favorites = favorites.filter(f => f.idMeal !== meal.idMeal);
+  else favorites.push({ idMeal: meal.idMeal, strMeal: meal.strMeal, strMealThumb: meal.strMealThumb, strCategory: meal.strCategory || '' });
+  localStorage.setItem('chef_favs', JSON.stringify(favorites));
+  updateFavCount();
+}
+
+function renderStatus(html) { resultsEl.innerHTML = `<div class="status">${html}</div>`; }
+function loading() {
+  renderStatus(`<div class="spinner"></div><div>Loading delicious recipes...</div>`);
+}
+function emptyState(msg) {
+  renderStatus(`
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>
+    <div>${msg}</div>`);
+}
+
+function renderCards(meals) {
+  if (!meals || meals.length === 0) { emptyState('No recipes found. Try another ingredient or category.'); return; }
+  resultsEl.innerHTML = `<div class="section-title">${meals.length} recipe${meals.length>1?'s':''} found</div><div class="grid" id="grid"></div>`;
+  const grid = document.getElementById('grid');
+  meals.forEach((m, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = (i * 0.04) + 's';
+    card.innerHTML = `
+      <div class="thumb">
+        <img src="${m.strMealThumb}" alt="${m.strMeal}" loading="lazy">
+        <span class="badge">${m.strCategory || 'Meal'}</span>
+        <button class="fav-btn ${isFav(m.idMeal)?'active':''}" data-fav="${m.idMeal}">${HEART_SVG}</button>
+      </div>
+      <div class="card-body">
+        <h3>${m.strMeal}</h3>
+        <div class="card-meta"><span>${m.strArea || ''}</span></div>
+      </div>`;
+    card.addEventListener('click', e => {
+      if (e.target.closest('.fav-btn')) return;
+      openMeal(m.idMeal);
+    });
+    card.querySelector('.fav-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      toggleFav(m);
+      e.currentTarget.classList.toggle('active', isFav(m.idMeal));
+      if (view === 'fav') renderFavorites();
+    });
+    grid.appendChild(card);
+  });
+}
+
+async function fetchJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Network error');
+  return res.json();
+}
+
+async function searchByIngredient(q) {
+  loading();
+  activeCategory = null;
+  updateChips();
+  try {
+    const data = await fetchJSON(`${API}/filter.php?i=${encodeURIComponent(q)}`);
+    currentMeals = data.meals || [];
+    renderCards(currentMeals);
+  } catch (e) { renderStatus('<div>Failed to load. Check your connection.</div>'); }
+}
+
+async function loadCategory(cat) {
+  loading();
+  activeCategory = cat;
+  updateChips();
+  try {
+    const data = await fetchJSON(`${API}/filter.php?c=${encodeURIComponent(cat)}`);
+    currentMeals = data.meals || [];
+    renderCards(currentMeals);
+  } catch (e) { renderStatus('<div>Failed to load. Check your connection.</div>'); }
+}
+
+async function loadCategories() {
+  try {
+    const data = await fetchJSON(`${API}/categories.php`);
+    categories = (data.categories || []).map(c => c.strCategory);
+  } catch (e) { categories = ['Chicken','Beef','Pork','Lamb','Seafood','Vegetarian','Vegan','Dessert','Pasta','Breakfast']; }
+  updateChips();
+}
+
+function updateChips() {
+  chipsEl.innerHTML = categories.map(c =>
+    `<div class="chip ${activeCategory===c?'active':''}" data-cat="${c}">${c}</div>`).join('');
+  chipsEl.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => { view = 'browse'; setView(); loadCategory(chip.dataset.cat); });
+  });
+}
+
+function renderFavorites() {
+  if (favorites.length === 0) {
+    emptyState('No favorites yet. Tap the heart on any recipe to save it here.');
+    return;
+  }
+  renderCards(favorites);
+}
+
+function setView() {
+  browseBtn.classList.toggle('active', view === 'browse');
+  favBtn.classList.toggle('active', view === 'fav');
+}
+
+browseBtn.addEventListener('click', () => {
+  view = 'browse'; setView();
+  if (currentMeals.length) renderCards(currentMeals);
+  else loadCategory('Chicken');
+});
+favBtn.addEventListener('click', () => {
+  view = 'fav'; setView(); renderFavorites();
+});
+
+searchBtn.addEventListener('click', () => {
+  const q = searchInput.value.trim();
+  if (!q) return;
+  view = 'browse'; setView();
+  searchByIngredient(q);
+});
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchBtn.click();
+});
+
+// ---- Modal ----
+async function openMeal(id) {
+  modalInner.innerHTML = `<div style="padding:60px;text-align:center"><div class="spinner"></div>Loading recipe...</div>`;
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  try {
+    const data = await fetchJSON(`${API}/lookup.php?i=${id}`);
+    const m = data.meals[0];
+    renderModal(m);
+  } catch (e) {
+    modalInner.innerHTML = '<div style="padding:40px;text-align:center">Failed to load recipe.</div>';
+  }
+}
+
+function renderModal(m) {
+  const ingredients = [];
+  for (let i = 1; i <= 20; i++) {
+    const ing = m['strIngredient' + i];
+    const meas = m['strMeasure' + i];
+    if (ing && ing.trim()) ingredients.push({ name: ing, measure: (meas || '').trim() });
+  }
+  const steps = (m.strInstructions || '').split(/\r?\n/).filter(s => s.trim());
+  const fav = isFav(m.idMeal);
+  modalInner.innerHTML = `
+    <div class="modal-hero">
+      <img src="${m.strMealThumb}" alt="${m.strMeal}">
+      <button class="close-btn" id="closeBtn">&times;</button>
+    </div>
+    <div class="modal-content">
+      <h2>${m.strMeal}</h2>
+      <div class="modal-tags">
+        ${m.strCategory?`<span class="tag">${m.strCategory}</span>`:''}
+        ${m.strArea?`<span class="tag">${m.strArea}</span>`:''}
+        ${m.strTags?m.strTags.split(',').map(t=>`<span class="tag">${t.trim()}</span>`).join(''):''}
+      </div>
+      <button class="modal-fav ${fav?'active':''}" id="modalFav">${HEART_SVG} ${fav?'Saved':'Save to favorites'}</button>
+      <div class="modal-cols">
+        <div class="ing-col">
+          <h3>Ingredients</h3>
+          <ul class="ing-list">
+            ${ingredients.map(i=>`<li><span class="name">${i.name}</span><span class="measure">${i.measure}</span></li>`).join('')}
+          </ul>
+        </div>
+        <div class="steps">
+          <h3>Instructions</h3>
+          ${steps.map(s=>`<p>${s}</p>`).join('')}
+        </div>
+      </div>
+      <div class="external">
+        ${m.strYoutube?`<a class="primary" href="${m.strYoutube}" target="_blank" rel="noopener">Watch on YouTube</a>`:''}
+        ${m.strSource?`<a href="${m.strSource}" target="_blank" rel="noopener">View Source</a>`:''}
+      </div>
+    </div>`;
+  document.getElementById('closeBtn').addEventListener('click', closeModal);
+  document.getElementById('modalFav').addEventListener('click', e => {
+    toggleFav(m);
+    const active = isFav(m.idMeal);
+    e.currentTarget.classList.toggle('active', active);
+    e.currentTarget.innerHTML = `${HEART_SVG} ${active?'Saved':'Save to favorites'}`;
+  });
+}
+
+function closeModal() {
+  modal.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ---- Init ----
+(async function init() {
+  await loadCategories();
+  loadCategory('Chicken');
+})();
+</script>
+</body>
+</html>
